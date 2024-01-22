@@ -7,6 +7,8 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private var imageView: UIImageView!
     @IBOutlet private var textLabel: UILabel!
     @IBOutlet private var counterLabel: UILabel!
+    @IBOutlet private weak var yesButton: UIButton!
+    @IBOutlet private weak var noButton: UIButton!
     
     // переменная с индексом текущего вопроса, начальное значение 0
     private var currentQuestionIndex = 0
@@ -97,6 +99,8 @@ final class MovieQuizViewController: UIViewController {
     
     // приватный метод, который содержит логику перехода в один из сценариев
     private func showNextQuestionOrResults() {
+        yesButton.isEnabled = true
+        noButton.isEnabled = true
         if currentQuestionIndex == questions.count - 1 {
             let text = "Ваш результат: \(correctAnswers)/10"
             let viewModel = QuizResultsViewModel(
@@ -137,11 +141,17 @@ final class MovieQuizViewController: UIViewController {
     // MARK: - Actions
     
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        showAnswerResult(isCorrect: !questions[currentQuestionIndex].correctAnswer)
+        yesButton.isEnabled = false
+        noButton.isEnabled = false
+        
+        return showAnswerResult(isCorrect: !questions[currentQuestionIndex].correctAnswer)
     }
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        showAnswerResult(isCorrect: questions[currentQuestionIndex].correctAnswer)
+        yesButton.isEnabled = false
+        noButton.isEnabled = false
+        
+        return showAnswerResult(isCorrect: questions[currentQuestionIndex].correctAnswer)
     }
     
 }
