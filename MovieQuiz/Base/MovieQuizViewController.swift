@@ -9,30 +9,64 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private var counterLabel: UILabel!
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     private var currentQuestionIndex = 0
     private var correctAnswers = 0
+    
     private let questionsAmount: Int = 10
-    private var questionFactory: QuestionFactoryProtocol = QuestionFactory()
-    private var alertPresenter: AlertPresenterProtocol = AlertPresenter()
+    private var questionFactory: QuestionFactoryProtocol?
+    private var alertPresenter: AlertPresenterProtocol?
     private var statisticService: StatisticService = StatisticServiceImplementation()
     private var currentQuestion: QuizQuestion?
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        alertPresenter.delegate = self
-        questionFactory.delegate = self
-        questionFactory.requestNextQuestion()
+       
+        imageView.layer.cornerRadius = 20
+        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
+        alertPresenter = AlertPresenter(delegate: self)
+
+        showLoadingIndicator()
+        questionFactory?.loadData()
     }
     
     // метод конвертации
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        QuizStepViewModel(
-                    image: UIImage(named: model.image) ?? UIImage(),
-                    question: model.text,
-                    questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
+        return QuizStepViewModel(
+            image: UIImage(data: model.image) ?? UIImage(),
+            question: model.text,
+            questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
+    
+    // индикатор загрузки
+    private func showLoadingIndicator() {
+         activityIndicator.isHidden = false
+         activityIndicator.startAnimating()
+     }
+    
+    private func hideLoadingIndicator() {
+          activityIndicator.isHidden = true
+      }
+
+    // сообщение об ошибке
+     private func showNetworkError(message: String) {
+         hideLoadingIndicator()
+         let alertModel = AlertModel(title: "Ошибка",
+                                     message: message,
+                                     buttonText: "Попробовать снова",
+                                     buttonAction: { [weak self] in
+                                         guard let self = self else { return }
+                                         self.currentQuestionIndex = 0
+                                         self.correctAnswers = 0
+                                         self.questionFactory?.loadData()
+                                     }
+         )
+
+         alertPresenter?.showAlert(with: alertModel)
+     }
+    
     // приватный метод вывода на экран вопроса
     private func show(quiz step: QuizStepViewModel) {
         counterLabel.text = step.questionNumber
@@ -78,22 +112,23 @@ final class MovieQuizViewController: UIViewController {
             show(quiz: viewModel)
         } else {
             currentQuestionIndex += 1
-            questionFactory.requestNextQuestion()
+            questionFactory?.requestNextQuestion()
         }
     }
     
     //метод для показа результатов раунда квиза
     private func show(quiz result: QuizResultsViewModel) {
         
-        alertPresenter.showAlert(with: AlertModel(
+        alertPresenter?.showAlert(with: AlertModel(
             title: result.title,
             message: result.text,
             buttonText: result.buttonText,
             buttonAction: { [weak self] in
-                self?.currentQuestionIndex = 0
-                self?.correctAnswers = 0
+                guard let self = self else { return }
+                self.currentQuestionIndex = 0
+                self.correctAnswers = 0
                 
-                self?.questionFactory.requestNextQuestion()
+                self.questionFactory?.requestNextQuestion()
             }))
     }
     
@@ -130,6 +165,15 @@ extension MovieQuizViewController: QuestionFactoryDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
+    func didLoadDataFromServer() {
+        activityIndicator.isHidden = true
+        questionFactory?.requestNextQuestion()
     }
 }
 
