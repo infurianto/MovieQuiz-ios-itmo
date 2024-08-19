@@ -111,9 +111,7 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
 
     private func proceedToNextQuestionOrResults() {
         if self.isLastQuestion() {
-            let text = correctAnswers == self.questionsAmount ?
-            "Поздравляем, вы ответили на 10 из 10!" :
-            "Вы ответили на \(correctAnswers) из 10, попробуйте ещё раз!"
+            let text = makeResultsMessage()
 
             let viewModel = QuizResultsViewModel(
                 title: "Этот раунд окончен!",
@@ -126,21 +124,18 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         }
     }
 
-    func makeResultsMessage() -> String {
+    private func makeResultsMessage() -> String {
         statisticService.store(correct: correctAnswers, total: questionsAmount)
 
         let bestGame = statisticService.bestGame
-
-        let totalPlaysCountLine = "Количество сыгранных квизов: \(statisticService.gamesCount)"
-        let currentGameResultLine = "Ваш результат: \(correctAnswers)\\\(questionsAmount)"
-        let bestGameInfoLine = "Рекорд: \(bestGame.correct)\\\(bestGame.total)"
-        + " (\(bestGame.date.dateTimeString))"
         let formattedAccuracy = String(format: "%.2f%%", statisticService.totalAccuracy * 100)
-        let averageAccuracyLine = "Средняя точность: \(formattedAccuracy)"
-
-        let resultMessage = [
-        currentGameResultLine, totalPlaysCountLine, bestGameInfoLine, averageAccuracyLine
-        ].joined(separator: "\n")
+        
+        let resultMessage = """
+        Количество сыгранных квизов: \(statisticService.gamesCount)
+        Ваш результат: \(correctAnswers)/\(questionsAmount)
+        Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
+        Средняя точность: \(formattedAccuracy)
+        """
 
         return resultMessage
     }
